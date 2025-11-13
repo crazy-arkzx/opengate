@@ -71,13 +71,14 @@ Automatic gate opening/closing
 Supports custom open/close positions
 Configurable opening range, speed, and auto-close time
 Can restrict opening to specific players or condition
-Fully compatible with SAMP scripting
+Fully compatible with SA-MP/open.mp scripting
 
 --------------------------------------------------------------------------------------------------------------
 
 Creators: Crazy_ArKzX & Tommy
 
 --------------------------------------------------------------------------------------------------------------
+
 
 
 
