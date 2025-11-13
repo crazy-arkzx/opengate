@@ -5,7 +5,7 @@
     it opens without the need to type commands or press buttons.
     
     Creator: Crazy_ArKzX
-    Contributors: ddx60hz, HaShira_Caos, PortalSamp (utils)
+    Contributors: Tommy
     
     CreateAutoGate(
     modelid, // Object Model
@@ -17,10 +17,10 @@
     bool:auto_open = true) // Opens Automatically for Anyone (true) or (false) to open only if the player meets a specific condition or performs a certain action
 */
 
-#if defined _open_gate_streamer_included
+#if defined _opengate_included
     #endinput
 #endif
-#define _open_gate_streamer_included
+#define _opengate_included
 
 #if !defined MAX_GATES
     #define MAX_GATES 1000
