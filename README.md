@@ -1,5 +1,3 @@
-Beleza! Vou transformar seu README em inglês, organizado, estiloso, como se fosse documentação oficial de um plugin de SAMP. Mantive exemplos claros, sintaxe formatada e links funcionais.
-
 # OPENGATE
 
 **OpenGate Include** provides an **Automatic Gate System**  
@@ -84,4 +82,5 @@ Fully compatible with SAMP scripting
 ---
 
 Creator: Crazy_ArKzX
+
 Contributors: ddx60hz, HaShira_Caos, PortalSamp (utils)
