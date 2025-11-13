@@ -1,3 +1,22 @@
+/*
+    OpenGate Include
+    This include provides an Automatic Gate System
+    Where, when approaching the gate,
+    it opens without the need to type commands or press buttons.
+    
+    Creator: Crazy_ArKzX
+    Contributors: ddx60hz, HaShira_Caos, PortalSamp (utils)
+    
+    CreateAutoGate(
+    modelid, // Object Model
+    Float:closeX, Float:closeY, Float:closeZ, Float:closeRX, Float:closeRY, Float:closeRZ // Closed Gate Position
+    Float:openX, Float:openY, Float:openZ, Float:openRX, Float:openRY, Float:openRZ // Open Gate Position
+    Float:range = 10.0 // Distance to Open the Gate
+    speed = 2 // Gate Opening Speed
+    autoclose_time = 5000 // Time to Automatically Close the Gate
+    bool:auto_open = true) // Opens Automatically for Anyone (true) or (false) to open only if the player meets a specific condition or performs a certain action
+*/
+
 #if defined _open_gate_included
     #endinput
 #endif
