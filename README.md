@@ -4,13 +4,9 @@
 When a player approaches the gate, it opens automatically  
 without the need to type commands or press buttons.
 
---------------------------------------------------------------------------------------------------------------
-
 ## Demonstration
 
 🎥 | [Watch on YouTube](https://youtu.be/NexNcZS4BEU?si=jopC68YlkFwErGUg) // Trash Quality 😡
-
---------------------------------------------------------------------------------------------------------------
 
 ## Syntax
 
@@ -26,7 +22,6 @@ CreateAutoGate(
                                       // false: opens only if the player meets a specific condition or performs a certain action
 );
 ```
---------------------------------------------------------------------------------------------------------------
 
 # Usage Examples
 
@@ -83,3 +78,4 @@ Fully compatible with SAMP scripting
 Creator: Crazy_ArKzX
 Contributors: ddx60hz, HaShira_Caos, PortalSamp (utils)
 
+--------------------------------------------------------------------------------------------------------------
