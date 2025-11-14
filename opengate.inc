@@ -3,7 +3,6 @@
     Automatic Gate System with Performance Improvements
     
     Creator: Crazy_ArKzX
-    Fixed by: Claude
     
     CreateAutoGate(
         modelid,
@@ -21,11 +20,9 @@
     #endinput
 #endif
 #define _opengate_included
-
 #if !defined MAX_GATES
     #define MAX_GATES 1000
 #endif
-
 #tryinclude <streamer>
 #if !defined _streamer_included
     #error "Streamer Plugin Required!"
@@ -305,9 +302,6 @@ public AutoGateCloseTimer(gateID)
     return 1;
 }
 
-// ==================== HOOKS ALS CORRETOS ====================
-
-// Hook: OnGameModeInit
 #if defined OG_OnGameModeInit
     forward OG_OnGameModeInit();
 #endif
@@ -326,8 +320,6 @@ public OnGameModeInit()
     #define _ALS_OnGameModeInit
 #endif
 #define OnGameModeInit OG_OnGameModeInit
-
-// Hook: OnGameModeExit
 #if defined OG_OnGameModeExit
     forward OG_OnGameModeExit();
 #endif
@@ -346,8 +338,6 @@ public OnGameModeExit()
     #define _ALS_OnGameModeExit
 #endif
 #define OnGameModeExit OG_OnGameModeExit
-
-// Hook: OnPlayerEnterDynamicArea
 #if defined OG_OnPlrEnterDynArea
     forward OG_OnPlrEnterDynArea(playerid, areaid);
 #endif
@@ -377,8 +367,6 @@ public OnPlayerEnterDynamicArea(playerid, areaid)
     #define _ALS_OnPlayerEnterDynamicArea
 #endif
 #define OnPlayerEnterDynamicArea OG_OnPlrEnterDynArea
-
-// Hook: OnPlayerLeaveDynamicArea
 #if defined OG_OnPlrLeaveDynArea
     forward OG_OnPlrLeaveDynArea(playerid, areaid);
 #endif
