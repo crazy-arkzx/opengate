@@ -3,7 +3,7 @@
     Automatic Gate System
     Where, When Approaching the Gate, it Open Automatically 
     
-    Creators: Crazy_ArKzX & Tommy
+    Creator: Crazy_ArKzX
     
     CreateAutoGate(
         modelid, // Object Model 
