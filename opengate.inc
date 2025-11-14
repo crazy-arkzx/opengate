@@ -1,21 +1,22 @@
 /*
     OpenGate Include
-    This include provides an Automatic Gate System
-    Where, when approaching the gate,
-    it opens without the need to type commands or press buttons.
+    Automatic Gate System
+    Where, When Approaching the Gate, it Open Automatically 
     
     Creators: Crazy_ArKzX & Tommy
     
     CreateAutoGate(
-    modelid, // Object Model
-    Float:closeX, Float:closeY, Float:closeZ, Float:closeRX, Float:closeRY, Float:closeRZ // Closed Gate Position
-    Float:openX, Float:openY, Float:openZ, Float:openRX, Float:openRY, Float:openRZ // Open Gate Position
-    Float:range = 10.0 // Distance to Open the Gate
-    speed = 2 // Gate Opening Speed
-    autoclose_time = 5000 // Time to Automatically Close the Gate
-    bool:auto_open = true) // Opens Automatically for Anyone (true) or (false) to open only if the player meets a specific condition or performs a certain action
+        modelid, // Object Model 
+        Float:closeX, Float:closeY, Float:closeZ, Float:closeRX, Float:closeRY, Float:closeRZ, // Gate Position
+        move[], // Direction of Movement: "left", "right", "up", "down", "forward", "backward"
+        Float:movement, // How Many Meters Will the Gate Move 
+        Float:range = 10.0, // Distance to Open the Gate 
+        speed = 2, // Opening Speed
+        autoclose_time = 5000, // Time to Auto Close
+        bool:auto_open = true // Automatically Open to Anyone (true) or (false) Only With Condition 
+    )
     
-    USE DestroyAllAutoGates(); In OnGameModeExit!!! 
+    USE DestroyAllAutoGates(); in OnGameModeExit!!! 
 */
 
 #if defined _opengate_included
@@ -30,145 +31,206 @@
     #error "Streamer Plugin Required!"
 #endif
 
-enum _0x4A2B {
-    bool:_0x1E3F,
-    _0x9C4D,
-    _0x7B1A,
-    Float:_0x3D8E[6],
-    Float:_0x6F2C[6],
-    Float:_0x8A3B,
-    _0x2E7D,
-    _0x5C9A,
-    bool:_0x4D1F,
-    _0x9E3A,
-    bool:_0x7C2D
+#define GATE_MOVE_UP        0
+#define GATE_MOVE_DOWN      1
+#define GATE_MOVE_LEFT      2
+#define GATE_MOVE_RIGHT     3
+#define GATE_MOVE_FORWARD   4
+#define GATE_MOVE_BACKWARD  5
+
+enum GateData {
+    bool:gateExists,
+    gateObjectID,
+    gateAreaID,
+    Float:gateClosedPos[6],
+    Float:gateOpenPos[6],
+    Float:gateRange,
+    gateSpeed,
+    gateAutoCloseTime,
+    bool:gateIsOpen,
+    gateTimerID,
+    bool:gateAutoOpen
 }
 
-static _0xB4E1[MAX_GATES][_0x4A2B];
+static GateInfo[MAX_GATES][GateData];
 
-stock Float:_0x3F8D(Float:_0x1, Float:_0x2, Float:_0x3, Float:_0x4, Float:_0x5, Float:_0x6) 
+stock Float:GetDistanceSquared(Float:x1, Float:y1, Float:z1, Float:x2, Float:y2, Float:z2) 
 {
-    new Float:_0x7 = _0x4 - _0x1;
-    new Float:_0x8 = _0x5 - _0x2;
-    new Float:_0x9 = _0x6 - _0x3;
-    return (_0x7 * _0x7) + (_0x8 * _0x8) + (_0x9 * _0x9);
+    new Float:dx = x2 - x1;
+    new Float:dy = y2 - y1;
+    new Float:dz = z2 - z1;
+    return (dx * dx) + (dy * dy) + (dz * dz);
 }
 
-stock CreateAutoGate(_0xA, Float:_0xB, Float:_0xC, Float:_0xD, Float:_0xE, Float:_0xF, Float:_0x10, Float:_0x11, Float:_0x12, Float:_0x13, Float:_0x14, Float:_0x15, Float:_0x16, Float:_0x17 = 10.0, _0x18 = 2, _0x19 = 5000, bool:_0x1A = true)
+stock GetMoveDirection(const move[]) 
 {
-    new _0x1B = -1;
-    for(new _0x1C = 0; _0x1C < MAX_GATES; _0x1C++) 
+    if(!strcmp(move, "up", true)) return GATE_MOVE_UP;
+    if(!strcmp(move, "down", true)) return GATE_MOVE_DOWN;
+    if(!strcmp(move, "left", true)) return GATE_MOVE_LEFT;
+    if(!strcmp(move, "right", true)) return GATE_MOVE_RIGHT;
+    if(!strcmp(move, "forward", true)) return GATE_MOVE_FORWARD;
+    if(!strcmp(move, "backward", true)) return GATE_MOVE_BACKWARD;
+    return GATE_MOVE_UP;
+}
+
+stock CalculateOpenPosition(Float:closeX, Float:closeY, Float:closeZ, Float:closeRZ, direction, Float:movement, &Float:openX, &Float:openY, &Float:openZ) 
+{
+    openX = closeX;
+    openY = closeY;
+    openZ = closeZ;   
+    switch(direction) 
     {
-        if(!_0xB4E1[_0x1C][_0x1E3F]) 
+        case GATE_MOVE_UP: 
         {
-            _0x1B = _0x1C;
-            break;
+            openZ += movement;
+        }
+        case GATE_MOVE_DOWN: 
+        {
+            openZ -= movement;
+        }
+        case GATE_MOVE_LEFT: 
+        {
+            new Float:angle = closeRZ - 90.0;
+            openX += movement * floatcos(angle, degrees);
+            openY += movement * floatsin(angle, degrees);
+        }
+        case GATE_MOVE_RIGHT: 
+        {
+            new Float:angle = closeRZ + 90.0;
+            openX += movement * floatcos(angle, degrees);
+            openY += movement * floatsin(angle, degrees);
+        }
+        case GATE_MOVE_FORWARD: 
+        {
+            openX += movement * floatcos(closeRZ, degrees);
+            openY += movement * floatsin(closeRZ, degrees);
+        }
+        case GATE_MOVE_BACKWARD: 
+        {
+            openX -= movement * floatcos(closeRZ, degrees);
+            openY -= movement * floatsin(closeRZ, degrees);
         }
     }
-    if(_0x1B == -1) return -1;  
-    _0xB4E1[_0x1B][_0x9C4D] = CreateDynamicObject(_0xA, _0xB, _0xC, _0xD, _0xE, _0xF, _0x10);
-    if(_0xB4E1[_0x1B][_0x9C4D] == INVALID_STREAMER_ID) return -1;  
-    _0xB4E1[_0x1B][_0x3D8E][0] = _0xB;
-    _0xB4E1[_0x1B][_0x3D8E][1] = _0xC;
-    _0xB4E1[_0x1B][_0x3D8E][2] = _0xD;
-    _0xB4E1[_0x1B][_0x3D8E][3] = _0xE;
-    _0xB4E1[_0x1B][_0x3D8E][4] = _0xF;
-    _0xB4E1[_0x1B][_0x3D8E][5] = _0x10;
-    _0xB4E1[_0x1B][_0x6F2C][0] = _0x11;
-    _0xB4E1[_0x1B][_0x6F2C][1] = _0x12;
-    _0xB4E1[_0x1B][_0x6F2C][2] = _0x13;
-    _0xB4E1[_0x1B][_0x6F2C][3] = _0x14;
-    _0xB4E1[_0x1B][_0x6F2C][4] = _0x15;
-    _0xB4E1[_0x1B][_0x6F2C][5] = _0x16;
-    _0xB4E1[_0x1B][_0x8A3B] = _0x17;
-    _0xB4E1[_0x1B][_0x2E7D] = _0x18;
-    _0xB4E1[_0x1B][_0x5C9A] = _0x19;
-    _0xB4E1[_0x1B][_0x4D1F] = false;
-    _0xB4E1[_0x1B][_0x9E3A] = -1;
-    _0xB4E1[_0x1B][_0x7C2D] = _0x1A;
-    _0xB4E1[_0x1B][_0x1E3F] = true;
-    _0xB4E1[_0x1B][_0x7B1A] = CreateDynamicCircle(_0xB, _0xC, _0x17);
-    Streamer_SetIntData(STREAMER_TYPE_AREA, _0xB4E1[_0x1B][_0x7B1A], E_STREAMER_EXTRA_ID, _0x1B);
-    return _0x1B;
 }
 
-stock DestroyAutoGate(_0x1D) 
+stock CreateAutoGate(modelid, Float:closeX, Float:closeY, Float:closeZ, Float:closeRX, Float:closeRY, Float:closeRZ, const move[], Float:movement, Float:range = 10.0, speed = 2, autoclose_time = 5000, bool:auto_open = true) 
 {
-    if(_0x1D < 0 || _0x1D >= MAX_GATES || !_0xB4E1[_0x1D][_0x1E3F]) return 0;
-    DestroyDynamicObject(_0xB4E1[_0x1D][_0x9C4D]);
-    DestroyDynamicArea(_0xB4E1[_0x1D][_0x7B1A]);
-    if(_0xB4E1[_0x1D][_0x9E3A] != -1) 
+    new gateID = -1;
+    for(new i = 0; i < MAX_GATES; i++) 
     {
-        KillTimer(_0xB4E1[_0x1D][_0x9E3A]);
-        _0xB4E1[_0x1D][_0x9E3A] = -1;
-    }
-    _0xB4E1[_0x1D][_0x1E3F] = false;
-    return 1;
-}
-
-stock OpenAutoGate(_0x1E) 
-{
-    if(_0x1E < 0 || _0x1E >= MAX_GATES || !_0xB4E1[_0x1E][_0x1E3F] || _0xB4E1[_0x1E][_0x4D1F]) return 0;
-    MoveDynamicObject(_0xB4E1[_0x1E][_0x9C4D], _0xB4E1[_0x1E][_0x6F2C][0], _0xB4E1[_0x1E][_0x6F2C][1], _0xB4E1[_0x1E][_0x6F2C][2], _0xB4E1[_0x1E][_0x2E7D], _0xB4E1[_0x1E][_0x6F2C][3], _0xB4E1[_0x1E][_0x6F2C][4], _0xB4E1[_0x1E][_0x6F2C][5]);
-    _0xB4E1[_0x1E][_0x4D1F] = true;
-    if(_0xB4E1[_0x1E][_0x9E3A] != -1) 
-    {
-        KillTimer(_0xB4E1[_0x1E][_0x9E3A]);
-    }
-    _0xB4E1[_0x1E][_0x9E3A] = SetTimerEx("AutoGateCloseTimer", _0xB4E1[_0x1E][_0x5C9A], false, "i", _0x1E);
-    return 1;
-}
-
-stock OpenManualGate(_0x1F, _0x20) 
-{
-    if(_0x1F < 0 || _0x1F >= MAX_GATES || !_0xB4E1[_0x1F][_0x1E3F]) return 0;
-    if(_0xB4E1[_0x1F][_0x4D1F]) return 0;
-    new Float:_0x21, Float:_0x22, Float:_0x23;
-    GetPlayerPos(_0x20, _0x21, _0x22, _0x23);
-    new Float:_0x24 = _0x3F8D(_0x21, _0x22, _0x23, _0xB4E1[_0x1F][_0x3D8E][0], _0xB4E1[_0x1F][_0x3D8E][1], _0xB4E1[_0x1F][_0x3D8E][2]);
-    new Float:_0x25 = _0xB4E1[_0x1F][_0x8A3B] * _0xB4E1[_0x1F][_0x8A3B];
-    if(_0x24 > _0x25) return 0;
-    return OpenAutoGate(_0x1F);
-}
-
-stock CloseAutoGate(_0x26) 
-{
-    if(_0x26 < 0 || _0x26 >= MAX_GATES || !_0xB4E1[_0x26][_0x1E3F] || !_0xB4E1[_0x26][_0x4D1F]) return 0;
-    MoveDynamicObject(_0xB4E1[_0x26][_0x9C4D], _0xB4E1[_0x26][_0x3D8E][0], _0xB4E1[_0x26][_0x3D8E][1], _0xB4E1[_0x26][_0x3D8E][2], _0xB4E1[_0x26][_0x2E7D], _0xB4E1[_0x26][_0x3D8E][3], _0xB4E1[_0x26][_0x3D8E][4], _0xB4E1[_0x26][_0x3D8E][5]);
-    _0xB4E1[_0x26][_0x4D1F] = false;
-    if(_0xB4E1[_0x26][_0x9E3A] != -1) 
-    {
-        KillTimer(_0xB4E1[_0x26][_0x9E3A]);
-        _0xB4E1[_0x26][_0x9E3A] = -1;
-    }
-    return 1;
-}
-
-stock IsAutoGateOpen(_0x27) 
-{
-    if(_0x27 < 0 || _0x27 >= MAX_GATES || !_0xB4E1[_0x27][_0x1E3F]) return 0;
-    return _0xB4E1[_0x27][_0x4D1F];
-}
-
-forward AutoGateCloseTimer(_0x28);
-public AutoGateCloseTimer(_0x28) 
-{
-    _0xB4E1[_0x28][_0x9E3A] = -1;
-    new bool:_0x29 = false;
-    foreach(new _0x2A : Player) 
-    {
-        if(IsPlayerInDynamicArea(_0x2A, _0xB4E1[_0x28][_0x7B1A])) 
+        if(!GateInfo[i][gateExists]) 
         {
-            _0x29 = true;
+            gateID = i;
             break;
         }
-    }
-    if(!_0x29) 
+    }    
+    if(gateID == -1) return -1;
+    GateInfo[gateID][gateObjectID] = CreateDynamicObject(modelid, closeX, closeY, closeZ, closeRX, closeRY, closeRZ);
+    if(GateInfo[gateID][gateObjectID] == INVALID_STREAMER_ID) return -1;
+    GateInfo[gateID][gateClosedPos][0] = closeX;
+    GateInfo[gateID][gateClosedPos][1] = closeY;
+    GateInfo[gateID][gateClosedPos][2] = closeZ;
+    GateInfo[gateID][gateClosedPos][3] = closeRX;
+    GateInfo[gateID][gateClosedPos][4] = closeRY;
+    GateInfo[gateID][gateClosedPos][5] = closeRZ;
+    new Float:openX, Float:openY, Float:openZ;
+    new direction = GetMoveDirection(move);
+    CalculateOpenPosition(closeX, closeY, closeZ, closeRZ, direction, movement, openX, openY, openZ);    
+    GateInfo[gateID][gateOpenPos][0] = openX;
+    GateInfo[gateID][gateOpenPos][1] = openY;
+    GateInfo[gateID][gateOpenPos][2] = openZ;
+    GateInfo[gateID][gateOpenPos][3] = closeRX;
+    GateInfo[gateID][gateOpenPos][4] = closeRY;
+    GateInfo[gateID][gateOpenPos][5] = closeRZ;
+    GateInfo[gateID][gateRange] = range;
+    GateInfo[gateID][gateSpeed] = speed;
+    GateInfo[gateID][gateAutoCloseTime] = autoclose_time;
+    GateInfo[gateID][gateIsOpen] = false;
+    GateInfo[gateID][gateTimerID] = -1;
+    GateInfo[gateID][gateAutoOpen] = auto_open;
+    GateInfo[gateID][gateExists] = true;
+    GateInfo[gateID][gateAreaID] = CreateDynamicCircle(closeX, closeY, range);
+    Streamer_SetIntData(STREAMER_TYPE_AREA, GateInfo[gateID][gateAreaID], E_STREAMER_EXTRA_ID, gateID);   
+    return gateID;
+}
+
+stock DestroyAutoGate(gateID) 
+{
+    if(gateID < 0 || gateID >= MAX_GATES || !GateInfo[gateID][gateExists]) return 0;   
+    DestroyDynamicObject(GateInfo[gateID][gateObjectID]);
+    DestroyDynamicArea(GateInfo[gateID][gateAreaID]);   
+    if(GateInfo[gateID][gateTimerID] != -1) 
     {
-        CloseAutoGate(_0x28);
+        KillTimer(GateInfo[gateID][gateTimerID]);
+        GateInfo[gateID][gateTimerID] = -1;
+    }   
+    GateInfo[gateID][gateExists] = false;
+    return 1;
+}
+
+stock OpenAutoGate(gateID) 
+{
+    if(gateID < 0 || gateID >= MAX_GATES || !GateInfo[gateID][gateExists] || GateInfo[gateID][gateIsOpen]) return 0;  
+    MoveDynamicObject(GateInfo[gateID][gateObjectID],GateInfo[gateID][gateOpenPos][0],GateInfo[gateID][gateOpenPos][1],GateInfo[gateID][gateOpenPos][2],GateInfo[gateID][gateSpeed],GateInfo[gateID][gateOpenPos][3],GateInfo[gateID][gateOpenPos][4],GateInfo[gateID][gateOpenPos][5]);    
+    GateInfo[gateID][gateIsOpen] = true;   
+    if(GateInfo[gateID][gateTimerID] != -1) 
+    {
+        KillTimer(GateInfo[gateID][gateTimerID]);
+    }    
+    GateInfo[gateID][gateTimerID] = SetTimerEx("AutoGateCloseTimer", GateInfo[gateID][gateAutoCloseTime], false, "i", gateID);
+    return 1;
+}
+
+stock OpenManualGate(gateID, playerid) 
+{
+    if(gateID < 0 || gateID >= MAX_GATES || !GateInfo[gateID][gateExists]) return 0;
+    if(GateInfo[gateID][gateIsOpen]) return 0;    
+    new Float:pX, Float:pY, Float:pZ;
+    GetPlayerPos(playerid, pX, pY, pZ);   
+    new Float:distSq = GetDistanceSquared(pX, pY, pZ, GateInfo[gateID][gateClosedPos][0], GateInfo[gateID][gateClosedPos][1], GateInfo[gateID][gateClosedPos][2]);
+    new Float:rangeSq = GateInfo[gateID][gateRange] * GateInfo[gateID][gateRange];    
+    if(distSq > rangeSq) return 0;   
+    return OpenAutoGate(gateID);
+}
+
+stock CloseAutoGate(gateID) 
+{
+    if(gateID < 0 || gateID >= MAX_GATES || !GateInfo[gateID][gateExists] || !GateInfo[gateID][gateIsOpen]) return 0;    
+    MoveDynamicObject(GateInfo[gateID][gateObjectID],GateInfo[gateID][gateClosedPos][0],GateInfo[gateID][gateClosedPos][1],GateInfo[gateID][gateClosedPos][2],GateInfo[gateID][gateSpeed],GateInfo[gateID][gateClosedPos][3],GateInfo[gateID][gateClosedPos][4],GateInfo[gateID][gateClosedPos][5]);    
+    GateInfo[gateID][gateIsOpen] = false;    
+    if(GateInfo[gateID][gateTimerID] != -1) 
+    {
+        KillTimer(GateInfo[gateID][gateTimerID]);
+        GateInfo[gateID][gateTimerID] = -1;
+    }    
+    return 1;
+}
+
+stock IsAutoGateOpen(gateID) 
+{
+    if(gateID < 0 || gateID >= MAX_GATES || !GateInfo[gateID][gateExists]) return 0;
+    return GateInfo[gateID][gateIsOpen];
+}
+
+forward AutoGateCloseTimer(gateID);
+public AutoGateCloseTimer(gateID) 
+{
+    GateInfo[gateID][gateTimerID] = -1;    
+    new bool:playerInArea = false;
+    foreach(new i : Player) 
+    {
+        if(IsPlayerInDynamicArea(i, GateInfo[gateID][gateAreaID])) 
+        {
+            playerInArea = true;
+            break;
+        }
+    }   
+    if(!playerInArea) 
+    {
+        CloseAutoGate(gateID);
     } else {
-        _0xB4E1[_0x28][_0x9E3A] = SetTimerEx("AutoGateCloseTimer", _0xB4E1[_0x28][_0x5C9A], false, "i", _0x28);
-    }
+        GateInfo[gateID][gateTimerID] = SetTimerEx("AutoGateCloseTimer", GateInfo[gateID][gateAutoCloseTime], false, "i", gateID);
+    }    
     return 1;
 }
 
@@ -190,19 +252,20 @@ public AutoGateCloseTimer(_0x28)
 #if defined OG_OnPlrLeaveDynArea
     forward OG_OnPlrLeaveDynArea(playerid, areaid);
 #endif
+
 public OnPlayerEnterDynamicArea(playerid, areaid) 
 {
-    new _0x2D = Streamer_GetIntData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID);
-    if(_0x2D >= 0 && _0x2D < MAX_GATES && _0xB4E1[_0x2D][_0x1E3F]) 
+    new gateID = Streamer_GetIntData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID);    
+    if(gateID >= 0 && gateID < MAX_GATES && GateInfo[gateID][gateExists]) 
     {
-        if(_0xB4E1[_0x2D][_0x7C2D]) 
+        if(GateInfo[gateID][gateAutoOpen]) 
         {
-            if(!_0xB4E1[_0x2D][_0x4D1F]) 
+            if(!GateInfo[gateID][gateIsOpen]) 
             {
-                OpenAutoGate(_0x2D);
+                OpenAutoGate(gateID);
             }
         }
-    }
+    }    
     #if defined OG_OnPlrEnterDynArea 
         return OG_OnPlrEnterDynArea(playerid, areaid);
     #else
@@ -212,23 +275,23 @@ public OnPlayerEnterDynamicArea(playerid, areaid)
 
 public OnPlayerLeaveDynamicArea(playerid, areaid) 
 {
-    new _0x30 = Streamer_GetIntData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID);
-    if(_0x30 >= 0 && _0x30 < MAX_GATES && _0xB4E1[_0x30][_0x1E3F]) 
+    new gateID = Streamer_GetIntData(STREAMER_TYPE_AREA, areaid, E_STREAMER_EXTRA_ID);    
+    if(gateID >= 0 && gateID < MAX_GATES && GateInfo[gateID][gateExists]) 
     {
-        new bool:_0x31 = false;
-        foreach(new _0x32 : Player) 
+        new bool:otherPlayerInArea = false;        
+        foreach(new i : Player) 
         {
-            if(_0x32 != playerid && IsPlayerInDynamicArea(_0x32, areaid)) 
+            if(i != playerid && IsPlayerInDynamicArea(i, areaid)) 
             {
-                _0x31 = true;
+                otherPlayerInArea = true;
                 break;
             }
-        }
-        if(!_0x31 && _0xB4E1[_0x30][_0x4D1F] && _0xB4E1[_0x30][_0x9E3A] == -1) 
+        }        
+        if(!otherPlayerInArea && GateInfo[gateID][gateIsOpen] && GateInfo[gateID][gateTimerID] == -1) 
         {
-            _0xB4E1[_0x30][_0x9E3A] = SetTimerEx("AutoGateCloseTimer", _0xB4E1[_0x30][_0x5C9A], false, "i", _0x30);
+            GateInfo[gateID][gateTimerID] = SetTimerEx("AutoGateCloseTimer", GateInfo[gateID][gateAutoCloseTime], false, "i", gateID);
         }
-    }
+    }    
     #if defined OG_OnPlrLeaveDynArea
         return OG_OnPlrLeaveDynArea(playerid, areaid);
     #else
@@ -238,9 +301,9 @@ public OnPlayerLeaveDynamicArea(playerid, areaid)
 
 stock DestroyAllAutoGates() 
 {
-    for(new _0x33 = 0; _0x33 < MAX_GATES; _0x33++) 
+    for(new i = 0; i < MAX_GATES; i++) 
     {
-        if(_0xB4E1[_0x33][_0x1E3F]) DestroyAutoGate(_0x33);
+        if(GateInfo[i][gateExists]) DestroyAutoGate(i);
     }
     return 1;
 }
