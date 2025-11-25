@@ -315,24 +315,26 @@ stock DestroyAutoGate(gateID)
     return 1;
 }
 
-stock OpenAutoGate(gateID) 
+stock OpenAutoGate(gateID, bool:smooth = true) 
 {
     if(gateID < 0 || gateID >= MAX_GATES || !GateInfo[gateID][gExists] || GateInfo[gateID][gIsOpen]) return 0;
-    
-    new Float:currX, Float:currY, Float:currZ;
-    GetDynamicObjectPos(GateInfo[gateID][gObjectID], currX, currY, currZ);
-
-    new Float:dist = VectorSize(
-        GateInfo[gateID][gOpenPos][0] - currX, 
-        GateInfo[gateID][gOpenPos][1] - currY, 
-        GateInfo[gateID][gOpenPos][2] - currZ
-    );
-
     new Float:moveSpeed = GateInfo[gateID][gSpeed];
-
-    if(dist < 0.1 && moveSpeed > 0.01)
+    
+    if(smooth) 
     {
-        moveSpeed = moveSpeed * 0.01;
+        new Float:currX, Float:currY, Float:currZ;
+        GetDynamicObjectPos(GateInfo[gateID][gObjectID], currX, currY, currZ);
+
+        new Float:dist = VectorSize(
+            GateInfo[gateID][gOpenPos][0] - currX, 
+            GateInfo[gateID][gOpenPos][1] - currY, 
+            GateInfo[gateID][gOpenPos][2] - currZ
+        );
+
+        if(dist < 0.1 && moveSpeed > 0.01)
+        {
+            moveSpeed = moveSpeed * 0.01;
+        }
     }
 
     MoveDynamicObject(GateInfo[gateID][gObjectID], 
@@ -341,36 +343,38 @@ stock OpenAutoGate(gateID)
         GateInfo[gateID][gOpenPos][3], GateInfo[gateID][gOpenPos][4], GateInfo[gateID][gOpenPos][5]
     );
     
-    GateInfo[gateID][gIsOpen] = true;    
+    GateInfo[gateID][gIsOpen] = true;
     
     if(GateInfo[gateID][gTimerID] != -1) 
     {
         KillTimer(GateInfo[gateID][gTimerID]);
         GateInfo[gateID][gTimerID] = -1;
-    }    
-
+    }
+    
     OG_CallOnGateOpened(gateID);
     return 1;
 }
 
-stock CloseAutoGate(gateID) 
+stock CloseAutoGate(gateID, bool:smooth = true)
 {
-    if(gateID < 0 || gateID >= MAX_GATES || !GateInfo[gateID][gExists] || !GateInfo[gateID][gIsOpen]) return 0;    
-        
-    new Float:currX, Float:currY, Float:currZ;
-    GetDynamicObjectPos(GateInfo[gateID][gObjectID], currX, currY, currZ);
-
-    new Float:dist = VectorSize(
-        GateInfo[gateID][gClosedPos][0] - currX, 
-        GateInfo[gateID][gClosedPos][1] - currY, 
-        GateInfo[gateID][gClosedPos][2] - currZ
-    );
-
+    if(gateID < 0 || gateID >= MAX_GATES || !GateInfo[gateID][gExists] || !GateInfo[gateID][gIsOpen]) return 0;
     new Float:moveSpeed = GateInfo[gateID][gSpeed];
-
-    if(dist < 0.1 && moveSpeed > 0.01)
+    
+    if(smooth) 
     {
-        moveSpeed = moveSpeed * 0.01;
+        new Float:currX, Float:currY, Float:currZ;
+        GetDynamicObjectPos(GateInfo[gateID][gObjectID], currX, currY, currZ);
+
+        new Float:dist = VectorSize(
+            GateInfo[gateID][gClosedPos][0] - currX, 
+            GateInfo[gateID][gClosedPos][1] - currY, 
+            GateInfo[gateID][gClosedPos][2] - currZ
+        );
+
+        if(dist < 0.1 && moveSpeed > 0.01)
+        {
+            moveSpeed = moveSpeed * 0.01;
+        }
     }
 
     MoveDynamicObject(GateInfo[gateID][gObjectID], 
@@ -391,7 +395,7 @@ stock CloseAutoGate(gateID)
     return 1;
 }
 
-stock OpenManualGate(gateID, playerid) 
+stock OpenManualGate(gateID, playerid, bool:smooth = true)
 {
     if(gateID < 0 || gateID >= MAX_GATES || !GateInfo[gateID][gExists]) return 0;
     if(GateInfo[gateID][gIsOpen]) return 0; 
@@ -400,7 +404,7 @@ stock OpenManualGate(gateID, playerid)
 
     if(OG_CallRequestAccess(playerid, gateID))
     {
-        OpenAutoGate(gateID);
+        OpenAutoGate(gateID, smooth);
     }
     return 1;
 }
@@ -531,7 +535,7 @@ public OnPlayerLeaveDynamicArea(playerid, areaid)
                 GateInfo[gateID][gTimerID] = SetTimerEx("OG_CloseTimer", GateInfo[gateID][gAutoCloseTime], false, "i", gateID);
             }
         }
-    }   
+    } 
 
     #if defined OG_OnPlayerLeaveDynamicArea
         return OG_OnPlayerLeaveDynamicArea(playerid, areaid);
