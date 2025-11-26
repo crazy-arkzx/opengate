@@ -54,6 +54,9 @@
 #define GATE_MOVE_RIGHT     3
 #define GATE_MOVE_FORWARD   4
 #define GATE_MOVE_BACKWARD  5
+#define GATE_ROTATE_X       6
+#define GATE_ROTATE_Y       7
+#define GATE_ROTATE_Z       8
 #define INVALID_GATE_ID     -1
 
 
@@ -76,41 +79,49 @@ enum E_GATE_DATA {
 }
 
 static GateInfo[MAX_GATES][E_GATE_DATA];
-static gateFreeSlots[MAX_GATES];
-static gateFreeCount;
-static gateUsedCount;
+static gateUsedCount = 0;
 
 stock OG_InitGateSystem() 
 {
     for(new i = 0; i < MAX_GATES; i++) 
     {
-        gateFreeSlots[i] = i;
         GateInfo[i][gExists] = false;
         GateInfo[i][gTimerID] = -1;
     }
-    gateFreeCount = MAX_GATES;
     gateUsedCount = 0;
 }
 
 static stock OG_AllocateGateSlot() 
 {
-    if(gateFreeCount <= 0) return INVALID_GATE_ID;
-    gateFreeCount--;
-    gateUsedCount++;
-    return gateFreeSlots[gateFreeCount];
+    for(new i = 0; i < MAX_GATES; i++)
+    {
+        if(!GateInfo[i][gExists])
+        {
+            gateUsedCount++;
+            return i;
+        }
+    }
+    printf("[OpenGate] Error: No free slots available (Max: %d)", MAX_GATES);
+    return INVALID_GATE_ID;
 }
 
 static stock OG_FreeGateSlot(gateID) 
 {
     if(gateID < 0 || gateID >= MAX_GATES) return 0;
-    gateFreeSlots[gateFreeCount] = gateID;
-    gateFreeCount++;
-    gateUsedCount--;
+    
+    if(GateInfo[gateID][gExists])
+    {
+        gateUsedCount--;
+    }
     return 1;
 }
 
 static stock OG_GetMoveDirection(const move[]) 
 {
+    if(!strcmp(move, "rotx", true)) return GATE_ROTATE_X;
+    if(!strcmp(move, "roty", true)) return GATE_ROTATE_Y;
+    if(!strcmp(move, "rotz", true)) return GATE_ROTATE_Z;
+
     switch(move[0]) 
     {
         case 'u', 'U': return GATE_MOVE_UP;
@@ -123,36 +134,69 @@ static stock OG_GetMoveDirection(const move[])
     return GATE_MOVE_UP;
 }
 
-static stock OG_CalculateOpenPosition(Float:cX, Float:cY, Float:cZ, Float:cRZ, dir, Float:mov, &Float:oX, &Float:oY, &Float:oZ) 
+static stock OG_CalculateOpenPosition(Float:cX, Float:cY, Float:cZ, Float:cRZ,  Float:cRX, Float:cRY, dir, Float:mov,  &Float:oX, &Float:oY, &Float:oZ, &Float:oRX, &Float:oRY, &Float:oRZ) 
 {
-    oX = cX;
-    oY = cY;
-    oZ = cZ;
+    oX = cX; 
+    oY = cY; 
+    oZ = cZ;   
+    oRX = cRX; 
+    oRY = cRY; 
+    oRZ = cRZ;
+
+    new Float:targetAngle;
+    new bool:isMovementXY = false;
 
     switch(dir)
     {
-        case GATE_MOVE_UP:       oZ += mov;
-        case GATE_MOVE_DOWN:     oZ -= mov;
-        case GATE_MOVE_LEFT: 
+        case GATE_MOVE_UP: 
         {
-            oX += mov * floatcos(cRZ - 90.0, degrees);
-            oY += mov * floatsin(cRZ - 90.0, degrees);
+            oZ += mov;
         }
-        case GATE_MOVE_RIGHT: 
+        case GATE_MOVE_DOWN: 
         {
-            oX += mov * floatcos(cRZ + 90.0, degrees);
-            oY += mov * floatsin(cRZ + 90.0, degrees);
+            oZ -= mov;
         }
         case GATE_MOVE_FORWARD: 
         {
-            oX += mov * floatcos(cRZ, degrees);
-            oY += mov * floatsin(cRZ, degrees);
+            targetAngle = cRZ;
+            isMovementXY = true;
         }
         case GATE_MOVE_BACKWARD: 
         {
-            oX -= mov * floatcos(cRZ, degrees);
-            oY -= mov * floatsin(cRZ, degrees);
+            targetAngle = cRZ + 180.0;
+            isMovementXY = true;
         }
+        case GATE_MOVE_LEFT: 
+        {
+            targetAngle = cRZ - 90.0;
+            isMovementXY = true;
+        }
+        case GATE_MOVE_RIGHT: 
+        {
+            targetAngle = cRZ + 90.0;
+            isMovementXY = true;
+        }
+        case GATE_ROTATE_X: 
+        { 
+            oRX += mov; 
+            oZ += 0.004; 
+        }
+        case GATE_ROTATE_Y: 
+        { 
+            oRY += mov; 
+            oZ += 0.004; 
+        }
+        case GATE_ROTATE_Z: 
+        { 
+            oRZ += mov; 
+            oZ += 0.004; 
+        }
+    }
+
+    if(isMovementXY)
+    {
+        oX += mov * floatsin(-targetAngle, degrees);
+        oY += mov * floatcos(-targetAngle, degrees);
     }
 }
 
@@ -167,17 +211,17 @@ static stock OG_CallRequestAccess(playerid, gateid)
 
 static stock OG_CallOnGateOpened(gateid)
 {
-    #if defined OnGateOpened
-        CallLocalFunction("OnGateOpened", "i", gateid);
-    #endif
+    if(funcidx("OnGateOpened") != -1) {
+        return CallLocalFunction("OnGateOpened", "i", gateid);
+    }
     return 1;
 }
 
 static stock OG_CallOnGateClosed(gateid)
 {
-    #if defined OnGateClosed
-        CallLocalFunction("OnGateClosed", "i", gateid);
-    #endif
+    if(funcidx("OnGateClosed") != -1) {
+        return CallLocalFunction("OnGateClosed", "i", gateid);
+    }
     return 1;
 }
 
@@ -217,15 +261,16 @@ stock CreateAutoGate(modelid, Float:cX, Float:cY, Float:cZ, Float:cRX, Float:cRY
     GateInfo[gateID][gClosedPos][4] = cRY;
     GateInfo[gateID][gClosedPos][5] = cRZ;
 
-    new Float:oX, Float:oY, Float:oZ;
-    OG_CalculateOpenPosition(cX, cY, cZ, cRZ, OG_GetMoveDirection(move), movement, oX, oY, oZ);    
+    new Float:oX, Float:oY, Float:oZ, Float:oRX, Float:oRY, Float:oRZ;
     
-    GateInfo[gateID][gOpenPos][0] = oX;
-    GateInfo[gateID][gOpenPos][1] = oY;
+    OG_CalculateOpenPosition(cX, cY, cZ, cRZ, cRX, cRY, OG_GetMoveDirection(move), movement, oX, oY, oZ, oRX, oRY, oRZ);
+    
+    GateInfo[gateID][gOpenPos][0] = oX; 
+    GateInfo[gateID][gOpenPos][1] = oY; 
     GateInfo[gateID][gOpenPos][2] = oZ;
-    GateInfo[gateID][gOpenPos][3] = cRX;
-    GateInfo[gateID][gOpenPos][4] = cRY;
-    GateInfo[gateID][gOpenPos][5] = cRZ;
+    GateInfo[gateID][gOpenPos][3] = oRX; 
+    GateInfo[gateID][gOpenPos][4] = oRY; 
+    GateInfo[gateID][gOpenPos][5] = oRZ;
 
     GateInfo[gateID][gRange] = range;
     GateInfo[gateID][gSpeed] = speed;
@@ -270,35 +315,71 @@ stock DestroyAutoGate(gateID)
     return 1;
 }
 
-stock OpenAutoGate(gateID) 
+stock OpenAutoGate(gateID, bool:smooth = true) 
 {
     if(gateID < 0 || gateID >= MAX_GATES || !GateInfo[gateID][gExists] || GateInfo[gateID][gIsOpen]) return 0;
+    new Float:moveSpeed = GateInfo[gateID][gSpeed];
     
+    if(smooth) 
+    {
+        new Float:currX, Float:currY, Float:currZ;
+        GetDynamicObjectPos(GateInfo[gateID][gObjectID], currX, currY, currZ);
+
+        new Float:dist = VectorSize(
+            GateInfo[gateID][gOpenPos][0] - currX, 
+            GateInfo[gateID][gOpenPos][1] - currY, 
+            GateInfo[gateID][gOpenPos][2] - currZ
+        );
+
+        if(dist < 0.1 && moveSpeed > 0.01)
+        {
+            moveSpeed = moveSpeed * 0.01;
+        }
+    }
+
     MoveDynamicObject(GateInfo[gateID][gObjectID], 
         GateInfo[gateID][gOpenPos][0], GateInfo[gateID][gOpenPos][1], GateInfo[gateID][gOpenPos][2], 
-        GateInfo[gateID][gSpeed], 
+        moveSpeed,
         GateInfo[gateID][gOpenPos][3], GateInfo[gateID][gOpenPos][4], GateInfo[gateID][gOpenPos][5]
     );
     
-    GateInfo[gateID][gIsOpen] = true;    
+    GateInfo[gateID][gIsOpen] = true;
     
     if(GateInfo[gateID][gTimerID] != -1) 
     {
         KillTimer(GateInfo[gateID][gTimerID]);
         GateInfo[gateID][gTimerID] = -1;
-    }    
+    }
 
     OG_CallOnGateOpened(gateID);
     return 1;
 }
 
-stock CloseAutoGate(gateID) 
+stock CloseAutoGate(gateID, bool:smooth = true)
 {
-    if(gateID < 0 || gateID >= MAX_GATES || !GateInfo[gateID][gExists] || !GateInfo[gateID][gIsOpen]) return 0;    
+    if(gateID < 0 || gateID >= MAX_GATES || !GateInfo[gateID][gExists] || !GateInfo[gateID][gIsOpen]) return 0;
+    new Float:moveSpeed = GateInfo[gateID][gSpeed];
     
+    if(smooth) 
+    {
+        new Float:currX, Float:currY, Float:currZ;
+        GetDynamicObjectPos(GateInfo[gateID][gObjectID], currX, currY, currZ);
+
+        new Float:dist = VectorSize(
+            GateInfo[gateID][gClosedPos][0] - currX, 
+            GateInfo[gateID][gClosedPos][1] - currY, 
+            GateInfo[gateID][gClosedPos][2] - currZ
+        );
+
+        if(dist < 0.1 && moveSpeed > 0.01)
+        {
+            moveSpeed = moveSpeed * 0.01;
+        }
+    }
+
     MoveDynamicObject(GateInfo[gateID][gObjectID], 
         GateInfo[gateID][gClosedPos][0], GateInfo[gateID][gClosedPos][1], GateInfo[gateID][gClosedPos][2], 
-        GateInfo[gateID][gSpeed], 
+        moveSpeed,
         GateInfo[gateID][gClosedPos][3], GateInfo[gateID][gClosedPos][4], GateInfo[gateID][gClosedPos][5]
     );
 
@@ -314,7 +395,7 @@ stock CloseAutoGate(gateID)
     return 1;
 }
 
-stock OpenManualGate(gateID, playerid) 
+stock OpenManualGate(gateID, playerid, bool:smooth = true)
 {
     if(gateID < 0 || gateID >= MAX_GATES || !GateInfo[gateID][gExists]) return 0;
     if(GateInfo[gateID][gIsOpen]) return 0; 
@@ -323,7 +404,7 @@ stock OpenManualGate(gateID, playerid)
 
     if(OG_CallRequestAccess(playerid, gateID))
     {
-        OpenAutoGate(gateID);
+        OpenAutoGate(gateID, smooth);
     }
     return 1;
 }
@@ -454,7 +535,7 @@ public OnPlayerLeaveDynamicArea(playerid, areaid)
                 GateInfo[gateID][gTimerID] = SetTimerEx("OG_CloseTimer", GateInfo[gateID][gAutoCloseTime], false, "i", gateID);
             }
         }
-    }   
+    } 
 
     #if defined OG_OnPlayerLeaveDynamicArea
         return OG_OnPlayerLeaveDynamicArea(playerid, areaid);
