@@ -7,6 +7,9 @@ without the need to type commands or press buttons.
 ## Demonstration
 🎥 | [Watch on YouTube](https://youtu.be/NexNcZS4BEU?si=jopC68YlkFwErGUg)
 
+# CONTRIBUITORS
+> [@TANF12](https://github.com/TanF12)
+
 ## Dependencies
 - **Streamer Plugin** (required)
 - **foreach** or **YSI** (optional, for performance optimization)
@@ -126,3 +129,4 @@ public OnGateClosed(gateid)
     return 1;
 }
 ```
+
