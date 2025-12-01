@@ -1,3 +1,6 @@
+![Downloads](https://img.shields.io/github/downloads/crazy-arkzx/opengate/total.svg)
+![Latest Tag](https://img.shields.io/github/v/tag/crazy-arkzx/opengate)
+
 # OPENGATE
 
 **OpenGate Include** provides an **Automatic Gate System**  
@@ -129,4 +132,5 @@ public OnGateClosed(gateid)
     return 1;
 }
 ```
+
 
