@@ -37,6 +37,13 @@ CreateAutoGate(
 * `forward` - Move forward relative to gate rotation
 * `backward` - Move backward relative to gate rotation
 
+# New Functions (1.7.8)
+> OG_DetectNearbyGates
+> OG_OpenSyncedGates
+> OG_CloseSyncedGates
+> RefreshGateSynchronization
+> GetSyncedGatesCount
+
 ## Usage Examples
 
 ### Open Gate for Anyone
@@ -129,6 +136,7 @@ public OnGateClosed(gateid)
     return 1;
 }
 ```
+
 
 
 
