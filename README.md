@@ -38,8 +38,8 @@ CreateAutoGate(
 * `backward` - Move backward relative to gate rotation
 
 # New Functions (1.7.8)
-> RefreshGateSynchronization
-> GetSyncedGatesCount
+> RefreshGateSynchronization();
+> GetSyncedGatesCount(gateid);
 
 ## Usage Examples
 
@@ -133,6 +133,7 @@ public OnGateClosed(gateid)
     return 1;
 }
 ```
+
 
 
 
