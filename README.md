@@ -38,9 +38,6 @@ CreateAutoGate(
 * `backward` - Move backward relative to gate rotation
 
 # New Functions (1.7.8)
-> OG_DetectNearbyGates
-> OG_OpenSyncedGates
-> OG_CloseSyncedGates
 > RefreshGateSynchronization
 > GetSyncedGatesCount
 
@@ -136,6 +133,7 @@ public OnGateClosed(gateid)
     return 1;
 }
 ```
+
 
 
 
