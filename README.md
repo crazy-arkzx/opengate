@@ -64,10 +64,10 @@ public OnGameModeInit()
 
 public OnGateRequestAccess(playerid, gateid)
 {
-    // Example: Only allow players with specific job
+    // Example: Only Admin
     if(gateid == myGate)
     {
-        if(PlayerInfo[playerid][pEmprego] == 1)
+        if(IsPlayerAdmin(playerid))
             return 1; // Allow access
         return 0; // Deny access
     }
@@ -133,10 +133,3 @@ public OnGateClosed(gateid)
     return 1;
 }
 ```
-
-
-
-
-
-
-
