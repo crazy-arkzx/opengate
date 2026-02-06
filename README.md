@@ -6,7 +6,7 @@ without the need to type commands or press buttons.
 
 my community: https://discord.gg/fqtABsMX6S
 
-**NOTE**: This Include not more a Updates
+**NOTE: This Include not more a Updates**
 
 ## Demonstration
 🎥 | [Watch on YouTube](https://youtu.be/NexNcZS4BEU?si=jopC68YlkFwErGUg)
@@ -137,5 +137,6 @@ public OnGateClosed(gateid)
     return 1;
 }
 ```
+
 
 
