@@ -34,12 +34,6 @@
     #endif
 #endif
 
-// #tryinclude <YSI_Data/y_iterate>
-
-#if !defined _INC_y_iterate
-    #tryinclude <foreach>
-#endif
-
 #if !defined MAX_GATES
     #define MAX_GATES 1000
 #endif
